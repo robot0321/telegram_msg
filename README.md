@@ -18,6 +18,33 @@ python3 -m venv .venv
 pip install -e .
 ```
 
+## systemd 등록 (선택)
+
+* `~/.config/systemd/user/telegram-msg.service`를 만들고 아래 내용을 넣습니다. (디렉터리 생성 포함)
+* `ExecStart`의 경로는 위에서 설치한 경로로 바꿔야 합니다. 
+(예시: `~/bin/telegram-msg-daemon` or `~/venv/bin/telegram-msg-daemon` or `~/anaconda3/bin/telegram-msg-daemon` 등)
+
+```ini
+[Unit]
+Description=Telegram message daemon
+
+[Service]
+ExecStart=/absolute/path/to/telegram-msg-daemon --no-initial-unlock
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+```
+
+* `.service` 파일을 만든 다음에 다음을 실행하세요
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now telegram-msg.service
+systemctl --user status telegram-msg.service
+```
+
+* 데몬 시작 후에는 `telbot unlock`을 실행해서 인증을 완료해야 사용 가능합니다.
+
 ## 실행
 
 ```bash
