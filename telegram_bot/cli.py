@@ -4,41 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import socket
 import sys
 
+from telegram_bot.client import call_daemon
 from telegram_bot.config import default_socket_path
 from telegram_bot.credentials import CredentialError, KEY_FILE, load_credentials
-
-
-def call_daemon(socket_path: str, request: dict, timeout: int = 10) -> dict:
-    """Unix socket으로 JSON 한 줄을 보내고 JSON 한 줄을 받는다."""
-    payload = json.dumps(request, ensure_ascii=False).encode("utf-8") + b"\n"
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-        client.settimeout(timeout)
-        try:
-            client.connect(socket_path)
-        except FileNotFoundError:
-            raise RuntimeError(
-                f"daemon socket not found: {socket_path}. "
-                "Start telegram-msg-daemon first."
-            ) from None
-        except ConnectionRefusedError:
-            raise RuntimeError(
-                f"daemon is not listening on {socket_path}. "
-                "Check telegram-msg-daemon."
-            ) from None
-        client.sendall(payload)
-
-        response = bytearray()
-        while b"\n" not in response:
-            chunk = client.recv(4096)
-            if not chunk:
-                raise RuntimeError("daemon closed the connection")
-            response.extend(chunk)
-
-    line, _, _ = response.partition(b"\n")
-    return json.loads(line)
 
 
 def show_result(response: dict) -> int:
@@ -50,33 +20,33 @@ def show_result(response: dict) -> int:
 
 
 def command_status(args) -> int:
-    return show_result(call_daemon(args.socket, {"op": "status"}))
+    return show_result(call_daemon({"op": "status"}, socket_path=args.socket))
 
 
 def command_unlock(args) -> int:
     # age가 이 CLI의 터미널에서 암호를 묻는다. 평문 credential은 저장하지 않는다.
-    call_daemon(args.socket, {"op": "status"})
+    call_daemon({"op": "status"}, socket_path=args.socket)
     credentials = load_credentials(args.credential_file)
-    return show_result(call_daemon(args.socket, {
+    return show_result(call_daemon({
         "op": "unlock",
         "token": credentials.telegram_token,
         "chat_id": credentials.telegram_chat_id,
-    }))
+    }, socket_path=args.socket))
 
 
 def command_send(args) -> int:
-    return show_result(call_daemon(args.socket, {
+    return show_result(call_daemon({
         "op": "message.send",
         "text": args.text,
-    }, timeout=45 * max(1, (len(args.text) + 1999) // 2000)))
+    }, socket_path=args.socket, timeout=45 * max(1, (len(args.text) + 1999) // 2000)))
 
 
 def command_approval(args) -> int:
-    response = call_daemon(args.socket, {
+    response = call_daemon({
         "op": "approval.request",
         "text": args.text,
         "timeout_seconds": args.timeout,
-    }, timeout=args.timeout + 45)
+    }, socket_path=args.socket, timeout=args.timeout + 45)
 
     if not response.get("ok"):
         return show_result(response)

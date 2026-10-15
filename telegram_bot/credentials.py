@@ -32,7 +32,7 @@ def load_credentials(path=KEY_FILE, required_keys=REQUIRED_KEYS, timeout=None):
     try:
         # Inherit stdin/stderr so age can request a passphrase through the terminal.
         # age가 현재 터미널에서 비밀번호를 받고, 평문은 stdout 메모리로만 전달한다.
-        print("Authorizing access to Telegram credentials...")
+        print("[Authorizing access to Telegram]")
         result = subprocess.run(['age', '--decrypt', str(path)], stdout=subprocess.PIPE,
                                 check=True, timeout=timeout)
     except FileNotFoundError:
