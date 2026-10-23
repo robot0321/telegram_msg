@@ -32,22 +32,11 @@ UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 UNIT="$UNIT_DIR/telegram-msg.service"
 KEY_DIR="$HOME/.config/telegram"
 
-# 필요한 OS 패키지만 설치합니다. 다른 배포판은 사전 설치 후 실행합니다.
-missing=()
-command -v python3 >/dev/null || missing+=(python3)
-command -v age >/dev/null || missing+=(age)
-if command -v apt-get >/dev/null; then
-  if ((USE_VENV)) && ! python3 -c 'import venv, ensurepip' >/dev/null 2>&1; then
-    missing+=(python3-venv)
-  fi
-  if ((${#missing[@]})); then
-    command -v sudo >/dev/null || fail '관리자에게 python3, python3-venv, age 설치를 요청하세요.'
-    sudo apt-get update
-    sudo apt-get install -y "${missing[@]}"
-  fi
-else
-  ((${#missing[@]} == 0)) || fail '배포판 패키지 관리자로 python3와 age를 설치한 후 다시 실행하세요.'
-fi
+# 필요한 OS패키지가 없으면 alert후 종료
+for cmd in python3 age; do
+    command -v "$cmd" >/dev/null ||
+        fail "$cmd 가 설치되어 있지 않습니다. 직접 설치해 주세요."
+done
 python3 -c 'import sys; assert sys.version_info >= (3, 8), "Python 3.8 이상이 필요합니다"'
 # 활성화된 conda 환경의 python3를 포함해 PATH에서 선택한 환경을 사용합니다.
 PYTHON=$(python3 -c 'import sys; print(sys.executable)')
@@ -103,6 +92,10 @@ systemctl --user restart telegram-msg.service
 systemctl --user is-active --quiet telegram-msg.service
 "$BIN_DIR/telbot" --help >/dev/null
 
+chmod 600 ~/.config/telegram/telebot_token.env.age
+export PATH="$HOME/.local/bin:$PATH"
+loginctl enable-linger "$USER"
+
 printf '\n설치 완료!\n'
 printf '저장소를 이동하거나 삭제하지 마세요: %s\n' "$SOURCE_DIR"
 printf '설치에 사용한 Python 환경도 유지하세요: %s\n' "$PYTHON"
@@ -115,4 +108,4 @@ printf '   export PATH="$HOME/.local/bin:$PATH"\n'
 printf '   telbot unlock\n   telbot status\n'
 printf '3. 위 PATH 설정을 ~/.bashrc 또는 ~/.zshrc에도 추가하세요.\n'
 printf '\n데몬 재시작 시 telbot unlock을 다시 실행해야 합니다.\n'
-printf '로그아웃 후에도 서비스를 유지하려면: sudo loginctl enable-linger "%s"\n' "$(id -un)"
+printf '로그아웃 후에도 서비스를 유지하려면: loginctl enable-linger "%s"\n' "$(id -un)"
