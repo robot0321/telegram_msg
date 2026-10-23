@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
+import socket
 import sys
 
 from telegram_bot.client import call_daemon
@@ -35,10 +37,11 @@ def command_unlock(args) -> int:
 
 
 def command_send(args) -> int:
+    text = f"@{socket.gethostname()}/{Path.cwd().name}\n{args.text}"
     return show_result(call_daemon({
         "op": "message.send",
-        "text": args.text,
-    }, socket_path=args.socket, timeout=45 * max(1, (len(args.text) + 1999) // 2000)))
+        "text": text,
+    }, socket_path=args.socket, timeout=45 * max(1, (len(text) + 1999) // 2000)))
 
 
 def command_approval(args) -> int:

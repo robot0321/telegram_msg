@@ -81,6 +81,15 @@ telbot send "작업 완료"
 telbot request-approval --timeout 60 "진행할까요?"
 ```
 
+`telbot send`는 메시지 맨 앞에 `@<서버이름>/<현재실행폴더>\n`을 자동으로 붙입니다.
+서버 이름은 호스트명이며, 현재 실행 폴더는 명령을 실행한 디렉터리의 마지막 이름입니다.
+예를 들어 `my-server`의 `/home/user/project`에서 실행하면 다음처럼 전송됩니다.
+
+```text
+@my-server/project
+작업 완료
+```
+
 승인 결과는 `approved`(종료 코드 0), `rejected`(1), `timeout`(2)입니다.
 Telegram 채팅에서는 `/ping`, `/status`, `/help` 명령을 사용할 수 있습니다.
 
